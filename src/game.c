@@ -1,9 +1,12 @@
-#include "game.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <ncurses.h>
 #include <string.h>
 #include <assert.h>
+
+#include "game.h"
+#include "asset.h"
+#include "game_error.h"
 
 typedef enum piece_types {
     SPY = 0x001,
@@ -37,6 +40,7 @@ typedef struct game_data {
     game_mode_t mode;
     uint steps;
     int tiles[100];
+    asset_t* assets;
 } game_data_t;
 
 void render_game(WINDOW*, game_data_t*);
@@ -44,75 +48,88 @@ void render_intro_screen(WINDOW*, game_data_t*);
 void render_main_menu(WINDOW*, game_data_t*);
 void render_play(WINDOW*, game_data_t*);
 
-init_result_t
-init(void) {
-    init_result_t res = {
-        .wnd = NULL,
-        .err = 0
-    };
-    if(res.wnd == NULL) { 
-        res.wnd = initscr();
-        if(res.wnd == NULL) {
-            res.err = 1;
-            return res;
-        }
+game_err_t
+init(WINDOW** ret) {
+    WINDOW* wnd = initscr();
+    if(wnd == NULL) {
+        return GMERR_WINDOW_INIT_FAIL;
     }
 
     if(cbreak() != 0) {
-        res.err = 2;
-        return res;
+        return GMERR_CBREAK_FAIL;
     }
 
     if(noecho() != 0) {
-        res.err = 3;
-        return res;
+        return GMERR_NOECHO_FAIL;
     }
 
-    if(keypad(res.wnd, 1) != 0) {
-        res.err = 4;
-        return res;
+    if(keypad(wnd, 1) != 0) {
+        return GMERR_KEYPAD_FAIL;
     }
 
-    if(nodelay(res.wnd, 1) != 0) {
-        res.err = 5;
-        return res;
+    if(nodelay(wnd, 1) != 0) {
+        return GMERR_NODELAY_FAIL;
     }
 
     if(curs_set(0) == ERR) {
-        res.err = 6;
-        return res;
+        return GMERR_CURSOR_INVISIBLE_FAIL;
     }
 
     if(start_color()) {
-        res.err = 7;
-        return res;
+        return GMERR_COLOR_SET_FAIL;
     }
 
     if(clear() != 0) {
-        res.err = 8;
-        return res;
+        return GMERR_CLEAR_FAIL;
     }
 
     if(refresh() != 0) {
-        res.err = 9;
-        return res;
+        return GMERR_REFRESH_FAIL;
     }
 
-    return res;
+    (*ret) = wnd;
+    return GMERR_OK;
 }
 
-void
+game_err_t
 run(WINDOW* wnd) {
+    game_err_t err = GMERR_OK;
     game_data_t data = {
         .changed = 1,
         .mode = INTRO_SCREEN,
         .steps = 0,
-        .tiles = {0}
+        .tiles = {0},
+        .assets = NULL
     };
+
+    data.assets = malloc(ASSET_COUNT * sizeof(asset_t));
+    if(data.assets == NULL) {
+        return GMERR_ASSET_LIST_FAIL;
+    }
+
+    for(int i = ASSET_UNKNOWN + 1; i < ASSET_COUNT; i++) {
+        asset_t asset;
+        err = load_asset(&asset, i);
+        if(err != GMERR_OK){
+            return err;
+        }
+        assert(asset.id == i && asset.buffer != NULL);
+        data.assets[i] = asset;
+    } 
 
     while(data.mode != EXIT) {
         render_game(wnd, &data);
     }
+
+    if(data.assets != NULL) {
+        for(size_t i = ASSET_UNKNOWN + 1; i < ASSET_COUNT; i++) {
+            unload_asset(&data.assets[i]);
+        } 
+        free(data.assets);
+        data.assets = NULL;
+    }
+
+    return err;
 }
 
 void
@@ -144,6 +161,9 @@ render_game(WINDOW* wnd, game_data_t* data) {
             break;
         case PLAY:
             render_play(wnd, data);
+            break;
+        case EXIT:
+            break;
     }
 
     refresh();
@@ -151,7 +171,18 @@ render_game(WINDOW* wnd, game_data_t* data) {
 
 void
 render_intro_screen(WINDOW* wnd, game_data_t* data) {
-    
+    move(10, 5);
+    int line = 0;
+    size_t len = sizeof(data->assets[ASSET_LOGO].buffer);
+    for(size_t i = 0; i < len; i++) {
+        char c = data->assets[ASSET_LOGO].buffer[i]; 
+        if(c != '\n') {
+            addch(c);
+        }
+        else{
+            line++;
+        }
+    }
 }
 
 void
