@@ -17,10 +17,11 @@ game_err_t
 load_asset(asset_t* ret, asset_id_t id) {
     const char* filename = NULL;
     FILE* file = NULL;
-    long length = 0;
+    size_t length = 0;
     asset_t asset = {
         .id = id,
-        .buffer = NULL
+        .buffer = NULL,
+        .length = 0
     };
 
 
@@ -47,7 +48,8 @@ load_asset(asset_t* ret, asset_id_t id) {
         return GMERR_ASSET_SEEK_FAIL;
     }
 
-    asset.buffer = malloc(length + 1);
+    asset.length = length + 1;
+    asset.buffer = malloc(asset.length);
     if(asset.buffer == NULL) {
         return GMERR_ASSET_ALLOC_FAIL;
     }
@@ -74,4 +76,5 @@ void
 unload_asset(asset_t* asset) {
     free(asset->buffer);
     asset->buffer = NULL;
+    asset->length = 0;
 }

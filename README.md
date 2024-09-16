@@ -1,13 +1,17 @@
 # STRATEGO
 
-## BUILD
+### Release
 ```
 cd build
 make
+cd build/release
+./stratego
 ```
 
-## RUN
+### Debug
 ```
 cd build
+make DEBUG=1
+cd build/debug
 ./stratego
 ```

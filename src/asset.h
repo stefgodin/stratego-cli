@@ -12,6 +12,7 @@ typedef enum asset_id {
 typedef struct asset {
     asset_id_t id;
     char* buffer;
+    size_t length;
 } asset_t;
 
 game_err_t load_asset(asset_t* ret, asset_id_t id);

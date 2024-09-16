@@ -173,14 +173,15 @@ void
 render_intro_screen(WINDOW* wnd, game_data_t* data) {
     move(10, 5);
     int line = 0;
-    size_t len = sizeof(data->assets[ASSET_LOGO].buffer);
-    for(size_t i = 0; i < len; i++) {
-        char c = data->assets[ASSET_LOGO].buffer[i]; 
-        if(c != '\n') {
-            addch(c);
-        }
-        else{
+    asset_t* logo = &data->assets[ASSET_LOGO];
+    for(size_t i = 0; i < logo->length; i++) {
+        char c = logo->buffer[i]; 
+        if(c == '\n') {
             line++;
+            move(10 + line, 5);
+        }
+        else if(c != '\0') {
+            addch(c);
         }
     }
 }
