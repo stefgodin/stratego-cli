@@ -1,9 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <ncurses.h>
 #include <string.h>
 #include <assert.h>
 
+#include "screen.h"
 #include "game.h"
 #include "asset.h"
 #include "game_error.h"
@@ -38,68 +38,41 @@ typedef enum game_mode {
 typedef struct game_data {
     int changed;
     game_mode_t mode;
-    uint steps;
+    unsigned int steps;
     int tiles[100];
     asset_t* assets;
+    int screen_x;
+    int screen_y;
 } game_data_t;
 
-void render_game(WINDOW*, game_data_t*);
-void render_intro_screen(WINDOW*, game_data_t*);
-void render_main_menu(WINDOW*, game_data_t*);
-void render_play(WINDOW*, game_data_t*);
+void handle_input_events(screen_state_t*, game_data_t*);
+void update_screen_size(screen_state_t*, game_data_t*);
+void render_game(screen_state_t*, game_data_t*);
+void render_intro_screen(screen_state_t*, game_data_t*);
+void render_main_menu(screen_state_t*, game_data_t*);
+void render_play(screen_state_t*, game_data_t*);
 
 game_err_t
-init(WINDOW** ret) {
-    WINDOW* wnd = initscr();
-    if(wnd == NULL) {
-        return GMERR_WINDOW_INIT_FAIL;
+init_game(screen_state_t** ret)
+{
+    if(ret == NULL){
+        return GMERR_OK;
     }
-
-    if(cbreak() != 0) {
-        return GMERR_CBREAK_FAIL;
-    }
-
-    if(noecho() != 0) {
-        return GMERR_NOECHO_FAIL;
-    }
-
-    if(keypad(wnd, 1) != 0) {
-        return GMERR_KEYPAD_FAIL;
-    }
-
-    if(nodelay(wnd, 1) != 0) {
-        return GMERR_NODELAY_FAIL;
-    }
-
-    if(curs_set(0) == ERR) {
-        return GMERR_CURSOR_INVISIBLE_FAIL;
-    }
-
-    if(start_color()) {
-        return GMERR_COLOR_SET_FAIL;
-    }
-
-    if(clear() != 0) {
-        return GMERR_CLEAR_FAIL;
-    }
-
-    if(refresh() != 0) {
-        return GMERR_REFRESH_FAIL;
-    }
-
-    (*ret) = wnd;
-    return GMERR_OK;
+    
+    return init_screen(ret, 120, 120);
 }
 
 game_err_t
-run(WINDOW* wnd) {
+run_game(screen_state_t* screen) {
     game_err_t err = GMERR_OK;
     game_data_t data = {
         .changed = 1,
         .mode = INTRO_SCREEN,
         .steps = 0,
         .tiles = {0},
-        .assets = NULL
+        .assets = NULL,
+        .screen_x = 0,
+        .screen_y = 0,
     };
 
     data.assets = malloc(ASSET_COUNT * sizeof(asset_t));
@@ -118,7 +91,8 @@ run(WINDOW* wnd) {
     } 
 
     while(data.mode != EXIT) {
-        render_game(wnd, &data);
+        handle_input_events(screen, &data);
+        render_game(screen, &data);
     }
 
     if(data.assets != NULL) {
@@ -133,65 +107,67 @@ run(WINDOW* wnd) {
 }
 
 void
-close(void) {
-    endwin();
+close_game(screen_state_t* screen) {
+    end_screen(screen);
+}
+
+/* EVENT STUFF */
+void
+handle_input_events(screen_state_t* screen, game_data_t* data) {
 }
 
 /* RENDERING STUFF */
 
 void
-render_game(WINDOW* wnd, game_data_t* data) {
+render_game(screen_state_t* screen, game_data_t* data) {
     if(data->changed == 0) {
         return;
     }
     data->changed = 0;
 
-    clear();
-
-    attron(A_BOLD);
-    box(wnd, 0, 0);
-    attroff(A_BOLD);
-
     switch(data->mode) {
         case INTRO_SCREEN:
-            render_intro_screen(wnd, data);
+            render_intro_screen(screen, data);
             break;
         case MENU:
-            render_main_menu(wnd, data);
+            render_main_menu(screen, data);
             break;
         case PLAY:
-            render_play(wnd, data);
+            render_play(screen, data);
             break;
         case EXIT:
             break;
     }
 
-    refresh();
+    render_screen(screen);
 }
 
 void
-render_intro_screen(WINDOW* wnd, game_data_t* data) {
-    move(10, 5);
-    int line = 0;
+render_intro_screen(screen_state_t* screen, game_data_t* data) {
+    unsigned int col_offset = 5;
+    unsigned int line_offset = 10;
+    unsigned int line = 0;
+    unsigned int col = 0;
     asset_t* logo = &data->assets[ASSET_LOGO];
     for(size_t i = 0; i < logo->length; i++) {
         char c = logo->buffer[i]; 
         if(c == '\n') {
             line++;
-            move(10 + line, 5);
+            col = 0;
         }
         else if(c != '\0') {
-            addch(c);
+            set_screen_char_at(screen, c, line + line_offset, col + col_offset);
+            col++;
         }
     }
 }
 
 void
-render_main_menu(WINDOW* wnd, game_data_t* data) {
+render_main_menu(screen_state_t* screen, game_data_t* data) {
 
 }
 
 void
-render_play(WINDOW* wnd, game_data_t* data) {
+render_play(screen_state_t* screen, game_data_t* data) {
 
 }

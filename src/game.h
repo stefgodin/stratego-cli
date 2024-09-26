@@ -1,12 +1,11 @@
 #ifndef STRATEGO_GAME_H
 #define STRATEGO_GAME_H
 
-#include <ncurses.h>
+#include "screen.h"
 #include "game_error.h"
 
-
-game_err_t init(WINDOW** ret);
-game_err_t run(WINDOW*);
-void close(void);
+game_err_t init_game(screen_state_t** ret);
+game_err_t run_game(screen_state_t* screen);
+void close_game(screen_state_t* screen);
 
 #endif /* STRATEGO_GAME_H */

@@ -6,6 +6,14 @@ const char* game_err_msg(game_err_t code) {
             return "Failed to make character input non-blocking";
         case GMERR_ASSET_NOT_FOUND:
             return "No filename exists for given asset";
+        case GMERR_RESIZE_FAIL:
+            return "Failed to resize window";
+        case GMERR_SCREEN_ALLOC:
+            return "Failed to allocate screen state memory";
+        case GMERR_SCREEN_CHARS_ALLOC:
+            return "Failed to allocate screen state chars memory";
+        case GMERR_SCREEN_CHAR_OUT_OF_BOUNDS:
+            return "Attempted to set character outside of screen bounds.";
         case GMERR_WINDOW_INIT_FAIL:
             return "Failed to initialize ncurses window";
         case GMERR_CBREAK_FAIL:

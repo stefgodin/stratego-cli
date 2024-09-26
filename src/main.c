@@ -6,24 +6,24 @@
 
 int 
 main(void) {
-    WINDOW* wnd = NULL;
-    game_err_t err = init(&wnd);
+    screen_state_t* screen = NULL;
+    game_err_t err = init_game(&screen);
     if(err != GMERR_OK) {
-        close();
+        close_game(screen);
         printf("Error %d: %s\n", err, game_err_msg(err));
         return 1;
     }
 
-    assert(wnd != NULL && "Initialization did not fail but returned an empty window pointer");
+    assert(screen != NULL && "Initialization did not fail but returned an empty screen state pointer");
 
-    err = run(wnd);
+    err = run_game(screen);
     if(err != GMERR_OK){
-        close();
+        close_game(screen);
         printf("Error %d: %s\n", err, game_err_msg(err));
         return 1;
     }
 
-    close();
+    close_game(screen);
     return 0;
 }
 
