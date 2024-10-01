@@ -13,6 +13,8 @@ typedef struct asset {
     asset_id_t id;
     char* buffer;
     size_t length;
+    size_t width;
+    size_t height;
 } asset_t;
 
 game_err_t load_asset(asset_t* ret, asset_id_t id);

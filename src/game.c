@@ -7,6 +7,7 @@
 #include "game.h"
 #include "asset.h"
 #include "game_error.h"
+#include "deltatime.h"
 
 typedef enum piece_types {
     SPY = 0x001,
@@ -43,6 +44,8 @@ typedef struct game_data {
     asset_t* assets;
     int screen_x;
     int screen_y;
+    unsigned long deltatime;
+    long introscreen_acc;
 } game_data_t;
 
 void handle_input_events(screen_state_t*, game_data_t*);
@@ -51,6 +54,7 @@ void render_game(screen_state_t*, game_data_t*);
 void render_intro_screen(screen_state_t*, game_data_t*);
 void render_main_menu(screen_state_t*, game_data_t*);
 void render_play(screen_state_t*, game_data_t*);
+void render_borders(screen_state_t*);
 
 game_err_t
 init_game(screen_state_t** ret)
@@ -73,6 +77,8 @@ run_game(screen_state_t* screen) {
         .assets = NULL,
         .screen_x = 0,
         .screen_y = 0,
+        .deltatime = 0,
+        .introscreen_acc = 0,
     };
 
     data.assets = malloc(ASSET_COUNT * sizeof(asset_t));
@@ -90,9 +96,18 @@ run_game(screen_state_t* screen) {
         data.assets[i] = asset;
     } 
 
+    unsigned long last_time = 0;
+    unsigned long current_time = get_microtime();
+    last_time = current_time;
     while(data.mode != EXIT) {
+        microsleep(20000);
+        current_time = get_microtime();
+        data.deltatime = current_time - last_time;
+
         handle_input_events(screen, &data);
         render_game(screen, &data);
+
+        last_time = current_time;
     }
 
     if(data.assets != NULL) {
@@ -120,11 +135,6 @@ handle_input_events(screen_state_t* screen, game_data_t* data) {
 
 void
 render_game(screen_state_t* screen, game_data_t* data) {
-    if(data->changed == 0) {
-        return;
-    }
-    data->changed = 0;
-
     switch(data->mode) {
         case INTRO_SCREEN:
             render_intro_screen(screen, data);
@@ -139,27 +149,16 @@ render_game(screen_state_t* screen, game_data_t* data) {
             break;
     }
 
+    render_borders(screen);
+
     render_screen(screen);
 }
 
 void
 render_intro_screen(screen_state_t* screen, game_data_t* data) {
-    unsigned int col_offset = 5;
-    unsigned int line_offset = 10;
-    unsigned int line = 0;
-    unsigned int col = 0;
     asset_t* logo = &data->assets[ASSET_LOGO];
-    for(size_t i = 0; i < logo->length; i++) {
-        char c = logo->buffer[i]; 
-        if(c == '\n') {
-            line++;
-            col = 0;
-        }
-        else if(c != '\0') {
-            set_screen_char_at(screen, c, line + line_offset, col + col_offset);
-            col++;
-        }
-    }
+    clear_screen(screen);
+    set_screen_chars_at(screen, logo->buffer, 5, (screen->cols - logo->width) / 2); 
 }
 
 void
@@ -170,4 +169,22 @@ render_main_menu(screen_state_t* screen, game_data_t* data) {
 void
 render_play(screen_state_t* screen, game_data_t* data) {
 
+}
+
+void
+render_border(screen_state_t* screen) {
+    //
+    // TODO: Make terminal unicode friendly
+    //
+    for(size_t i = 1; i < screen->cols - 1; i++){
+        set_screen_char_at(screen, '─', 0, i);
+    }
+    for(size_t i = 1; i < screen->lines - 1; i++){
+        set_screen_char_at(screen, '│', i, 0);
+    }
+
+    set_screen_char_at(screen, '┌', 0, 0);
+    set_screen_char_at(screen, '┐', 0, screen->cols - 1);
+    set_screen_char_at(screen, '└', screen->lines - 1, 0);
+    set_screen_char_at(screen, '┘', screen->lines - 1, screen->cols - 1);
 }

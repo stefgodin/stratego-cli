@@ -21,7 +21,9 @@ load_asset(asset_t* ret, asset_id_t id) {
     asset_t asset = {
         .id = id,
         .buffer = NULL,
-        .length = 0
+        .length = 0,
+        .width = 0,
+        .height = 0
     };
 
 
@@ -61,6 +63,20 @@ load_asset(asset_t* ret, asset_id_t id) {
             return GMERR_ASSET_READ_FAIL;
         }
         asset.buffer[length] = '\0';
+        
+        size_t width = 0;
+        for(size_t i = 0; i < length; i++){
+            if(asset.buffer[i] == '\n'){
+                asset.height++;
+                if(asset.width < width){
+                    asset.width = width;
+                }
+                width = 0;
+            }
+            else{
+                width++;
+            }
+        }
     }
 
     if(fclose(file) == EOF) {
@@ -77,4 +93,6 @@ unload_asset(asset_t* asset) {
     free(asset->buffer);
     asset->buffer = NULL;
     asset->length = 0;
+    asset->width = 0;
+    asset->height = 0;
 }

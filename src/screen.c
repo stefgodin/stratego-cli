@@ -82,6 +82,7 @@ init_screen(screen_state_t** ret, unsigned int lines, unsigned int cols) {
     screen->cols = cols;
     screen->lines = lines;
     screen->screen_chars = malloc(sizeof(char) * cols * lines + 1);
+    screen->max_index = lines * cols;
 
     for(unsigned int i = 0; i < cols * lines; i++){
         screen->screen_chars[i] = ' ';
@@ -128,14 +129,12 @@ render_screen(screen_state_t* screen) {
 
     screen->needs_redraw = 0;
 
-    clear();
-    for(unsigned int l = 0; l < screen->lines; l++){
-        for(unsigned int c = 0; c < screen->cols; c++){
-            move(l, c);
-            addch(screen->screen_chars[l * screen->cols + c]);
-        }
+    //wclear(screen->wnd);
+    for(unsigned int i = 0; i < screen->max_index; i++) {
+        move(i / screen->cols, i % screen->lines);
+        addch(screen->screen_chars[i]);
     }
-    refresh();
+    wrefresh(screen->wnd);
 
     return GMERR_OK;
 }
@@ -155,6 +154,30 @@ set_screen_char_at(screen_state_t* screen, char c, unsigned int line, unsigned i
     return GMERR_OK;
 }
 
+game_err_t
+set_screen_chars_at(screen_state_t* screen, char* chars, unsigned int line, unsigned int col) {
+    assert(screen != NULL && "Screen state should not be null at this point");
+
+    size_t i = 0;
+    unsigned int line_acc = 0;
+    unsigned int col_acc = 0;
+    while(chars[i] != '\0'){
+        char c = chars[i]; 
+        if(c == '\n') {
+            line_acc++;
+            col_acc = 0;
+        }
+        else{
+            set_screen_char_at(screen, c, line + line_acc, col + col_acc);
+            col_acc++;
+        }
+        i++;
+    }
+    screen->needs_redraw = 1;
+
+    return GMERR_OK;
+}
+
 int get_char_index(screen_state_t* screen, unsigned int line, unsigned int col) {
     assert(screen != NULL && "Screen state should not be null at this point");
     if(line >= screen->lines || col >= screen->cols){
@@ -162,4 +185,15 @@ int get_char_index(screen_state_t* screen, unsigned int line, unsigned int col) 
     }
 
     return line * screen->cols + col;
+}
+
+game_err_t
+clear_screen(screen_state_t* screen) {
+    assert(screen != NULL && "Screen state should not be null at this point");
+    for(unsigned int i = 0; i < screen->max_index; i++) {
+        screen->screen_chars[i] = ' ';
+    }
+    screen->needs_redraw = 1;
+
+    return GMERR_OK;
 }

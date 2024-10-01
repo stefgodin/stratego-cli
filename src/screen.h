@@ -8,6 +8,7 @@ typedef struct screen_state {
     WINDOW* wnd;
     unsigned int cols;
     unsigned int lines;
+    size_t max_index;
     char* screen_chars;
     int needs_redraw;
 } screen_state_t;
@@ -15,6 +16,8 @@ typedef struct screen_state {
 game_err_t init_screen(screen_state_t** ret, unsigned int lines, unsigned int cols);
 game_err_t end_screen(screen_state_t* screen);
 game_err_t render_screen(screen_state_t* screen);
+game_err_t clear_screen(screen_state_t* screen);
 game_err_t set_screen_char_at(screen_state_t* screen, char c, unsigned int line, unsigned int col);
+game_err_t set_screen_chars_at(screen_state_t* screen, char* chars, unsigned int line, unsigned int col);
 
 #endif /* SCREEN_H */
